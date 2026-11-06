@@ -1,4 +1,4 @@
-﻿// Builds dist/<engine>/ (wasm-bindgen web package) for the pinned upstream releases.
+// Builds dist/<engine>/ (wasm-bindgen web package) for the pinned upstream releases.
 // Usage: node build.mjs [engine ...] [--keep-target]   (default: all engines, one at a time)
 import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync, copyFileSync } from 'node:fs'
@@ -10,7 +10,7 @@ const keepTarget = process.argv.includes('--keep-target')
 const TARGET = 'wasm32-unknown-unknown'
 const EPAINT_NOTICES = ['UFL.txt', 'OFL.txt', 'Hack-Regular.txt', 'emoji-icon-font-mit-license.txt']
 const run = (cmd, args, cwd = root, env = process.env) => execFileSync(cmd, args, { cwd, stdio: 'inherit', env })
-const out = (cmd, args, cwd = root, env = process.env) => execFileSync(cmd, args, { cwd, encoding: 'utf8', env }).trim()
+const out = (cmd, args, cwd = root, env = process.env) => execFileSync(cmd, args, { cwd, encoding: 'utf8', env, maxBuffer: 1 << 28 }).trim()
 
 /** Ambient compiler overrides must not change an artifact built from the same pin. */
 function compilerEnv(pin, extra) {
@@ -51,13 +51,15 @@ function prepareSource(engine, pin) {
   const lock = readFileSync(lockFile, 'utf8')
   const bindgenVersion = /\[\[package\]\]\s+name = "wasm-bindgen"\s+version = "([^"]+)"/.exec(lock)?.[1]
   if (bindgenVersion !== pin.wasmBindgen) throw new Error(`${engine}: pin wasmBindgen ${pin.wasmBindgen} != upstream Cargo.lock ${bindgenVersion}`)
-  const entryFile = join(overlay, 'lock-package.txt')
-  if (existsSync(entryFile)) {
-    const entry = readFileSync(entryFile, 'utf8').trim()
-    if (!entry.includes(`name = "jcode_${engine}_preview"`)) throw new Error(`${engine}: invalid lock-package.txt`)
-    writeFileSync(lockFile, `${lock.trimEnd()}\n\n${entry}\n`)
-  }
-  return { src, locked: existsSync(entryFile) }
+  // Cargo adds only our crate to the upstream lock; every upstream package must keep its exact version.
+  const packages = (text) => new Set([...text.matchAll(/\[\[package\]\]\s+name = "([^"]+)"\s+version = "([^"]+)"/g)].map((m) => `@`))
+  const before = packages(lock)
+  out('cargo', ['metadata', '--format-version', '1'], src, { ...process.env, RUSTUP_TOOLCHAIN: pin.rust })
+  const after = packages(readFileSync(lockFile, 'utf8'))
+  const lost = [...before].filter((name) => !after.has(name))
+  const added = [...after].filter((name) => !before.has(name))
+  if (lost.length || added.some((name) => !name.startsWith(`jcode__preview@`))) throw new Error(`: the lock changed beyond our crate (removed: ; added: )`)
+  return { src, locked: true }
 }
 
 function epaintNotices(src, env) {

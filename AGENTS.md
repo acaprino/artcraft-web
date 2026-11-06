@@ -24,14 +24,14 @@ Né la build né i test aggiornano l'upstream. Ogni pin sta in `pins/<motore>.js
 
 1. `npm run upstream:check`: tag corrente e ultima release `vX.Y.Z` per motore. Verificare release, tag e commit sul repo ufficiale.
 2. `node scripts/update-upstream.mjs <motore>` (o `--tag`): riscrive tag, commit e `wasmBindgen` leggendoli dal tag clonato e cancella `.cache/<motore>`. Se `wasmBindgen` cambia, aggiornare anche `wasm-bindgen = "=X"` in **tutti** i `packages/*/preview/Cargo.toml` (la versione deve essere identica in tutti i crate e nel `wasm-bindgen-cli` in `.cache/tools`).
-3. Il crate overlay `packages/<motore>/preview/` è il nostro adattamento permanente, copiato nel checkout come membro `jcode-preview` del workspace upstream. Se l'upstream cambia le API usate (`wordcraft-*`, `gridcraft-*`, `deckcraft-*`, `pdfcraft-render`, tipi `Workbook`/`Sheet`…) il crate va adattato **in `packages/`**, mai nella cache. `lock-package.txt` elenca le dipendenze del crate per `--locked`: rigenerarlo se cambiano.
+3. Il crate overlay `packages/<motore>/preview/` è il nostro adattamento permanente, copiato nel checkout come membro `jcode-preview` del workspace upstream. Se l'upstream cambia le API usate (`wordcraft-*`, `gridcraft-*`, `deckcraft-*`, `pdfcraft-render`, tipi `Workbook`/`Sheet`…) il crate va adattato **in `packages/`**, mai nella cache. La build aggiunge il crate al `Cargo.lock` upstream con `cargo metadata` e compila con `--locked`: si ferma se cambia la versione di un pacchetto upstream.
 4. **WordCraft fornisce i font a tutti** (`JCODE_CRAFT_FONT_DIR` = `assets/fonts` del suo checkout): se il suo pin cambia, ricompilare tutti i motori.
 5. `npm run release` (build + `npm test` + installazione dei tarball), poi `npm run test:browser`. Alzare `version` in `package.json` per ogni release distribuita (semver: patch = stesso upstream/fix, minor = nuovo upstream o API compatibile, major = API rotta).
 6. Rileggere i warning della build: licenze (`LICENSE-*`, `OFL-*`, `epaint-*` per Grid/Deck) e `provenance.json` devono restare completi (`verifyDist` in `scripts/common.mjs` li impone). Aggiornare questa pagina e il README se cambia il comportamento.
 
 Il toolchain Rust è fissato per motore in `rust` del pin: aggiornarlo è lo stesso passo (nuova release stabile → pin → build completa). `rustup target add wasm32-unknown-unknown --toolchain <rust>` e `wasm-bindgen-cli` (`.cache/tools/wasm-bindgen-<versione>/bin`) li installa la build se mancano (serve la rete la prima volta).
 
-Release upstream disponibili all'ultimo controllo (2026-11-06) e non ancora adottate: pdfcraft v0.18.2, wordcraft v0.15.2, gridcraft v0.16.1, deckcraft v0.15.1. Adottarle richiede la verifica completa sopra: i crate overlay sono scritti sulle API di v0.11/v0.12/v0.18.
+Storico adozioni: 2026-11-06 pin spostati a pdfcraft v0.18.2, wordcraft v0.15.2, gridcraft v0.16.1 (adattamento: `active_sheet = tile.sheet.into()`), deckcraft v0.15.1. Controllare sempre con `npm run upstream:check` prima di un nuovo giro.
 
 ## Contratto API (non romperlo)
 

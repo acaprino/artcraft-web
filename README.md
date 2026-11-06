@@ -1,13 +1,13 @@
-﻿# artcraft-web
+# artcraft-web
 
 Librerie WebAssembly riusabili della suite ArtCraft (PdfCraft, WordCraft, GridCraft, DeckCraft), **solo anteprima/lettura**, da usare in un Web Worker in Sparklone, JanuraCode e siti web esterni.
 
 | Motore | Formati | Classe | Upstream (pin) |
 | --- | --- | --- | --- |
-| `pdfcraft` | PDF | `PdfDocument` | storytold/pdfcraft v0.18.1 |
-| `wordcraft` | DOCX | `DocxDocument` | storytold/wordcraft v0.11.0 |
-| `gridcraft` | XLSX, XLSM | `XlsxDocument` | storytold/gridcraft v0.12.1 |
-| `deckcraft` | PPTX, PPTM | `PptxDocument` | storytold/deckcraft v0.11.1 |
+| `pdfcraft` | PDF | `PdfDocument` | storytold/pdfcraft v0.18.2 |
+| `wordcraft` | DOCX | `DocxDocument` | storytold/wordcraft v0.15.2 |
+| `gridcraft` | XLSX, XLSM | `XlsxDocument` | storytold/gridcraft v0.16.1 |
+| `deckcraft` | PPTX, PPTM | `PptxDocument` | storytold/deckcraft v0.15.1 |
 
 API comune: `new Document(bytes)` (PDF: `, password`), `metadata()`, `renderPage(index, scale) -> PNG`, `pageText(index)`, `free()`.
 
@@ -43,7 +43,7 @@ npm run upstream:check        # nuove release upstream
 
 Struttura:
 - `pins/<motore>.json`: repo, tag, commit, rust, wasm-bindgen fissati
-- `packages/<motore>/preview/`: crate overlay aggiunto al workspace upstream (`lock-package.txt` per `--locked`)
+- `packages/<motore>/preview/`: crate overlay aggiunto al workspace upstream
 - `build.mjs`, `scripts/`: build, release, aggiornamento pin, verifica `dist/`
 - `test/`: fixture generate in memoria, prova Node, prova browser, server demo
 - `.cache/` (checkout e tool), `dist/`, `release/`: generati, ignorati da git

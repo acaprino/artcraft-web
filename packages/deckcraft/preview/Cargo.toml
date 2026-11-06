@@ -1,0 +1,22 @@
+[package]
+name = "jcode_deckcraft_preview"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# Prepared at the pinned upstream workspace's jcode-preview/ by bundle/wordcraft.ts.
+[dependencies]
+deckcraft-fonts = { path = "../crates/fonts" }
+deckcraft-model = { path = "../crates/model" }
+deckcraft-pptx = { path = "../crates/pptx" }
+deckcraft-render = { path = "../crates/render" }
+image = { workspace = true }
+kurbo = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+zip = { workspace = true }
+wasm-bindgen = "=0.2.129"

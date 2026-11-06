@@ -1,0 +1,14 @@
+[[package]]
+name = "jcode_gridcraft_preview"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "gridcraft-engine",
+ "gridcraft-model",
+ "gridcraft-ui-egui",
+ "gridcraft-xlsx",
+ "image",
+ "serde_json",
+ "wasm-bindgen",
+ "zip",
+]

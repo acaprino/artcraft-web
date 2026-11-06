@@ -1,0 +1,9 @@
+{
+  "repo": "https://github.com/storytold/deckcraft",
+  "tag": "v0.11.1",
+  "commit": "9ec39267931c0163dd5648c879043edcb9603cb8",
+  "publishedAt": "2026-10-25T13:36:43Z",
+  "verifiedAt": "2026-10-25",
+  "rust": "1.98.0",
+  "wasmBindgen": "0.2.129"
+}

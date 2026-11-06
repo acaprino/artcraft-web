@@ -1,0 +1,6 @@
+/.cache/
+/dist/
+/release/
+/target/
+/node_modules/
+effectiveness-metrics.json

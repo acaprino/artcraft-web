@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ArtCraft Web — anteprima wasm</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; color: #1b1d22; background: #f6f7f9; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  #bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+  #status { color: #555b66; }
+  #status[data-error] { color: #b42318; }
+  #stage { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  img { max-width: 100%; border: 1px solid #d6d9df; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 8%); }
+  #text { max-width: 640px; color: #555b66; font-size: 12px; white-space: pre-wrap; }
+</style>
+<h1>ArtCraft in WebAssembly</h1>
+<div id="bar">
+  <input id="file" type="file" accept=".pdf,.docx,.xlsx,.xlsm,.pptx,.pptm">
+  <label>Pagina <input id="page" type="number" min="1" value="1" style="width:56px"></label>
+  <label>Zoom <select id="scale"><option value="1">100%</option><option value="1.5" selected>150%</option><option value="2">200%</option></select></label>
+  <span id="status">caricamento del motore…</span>
+</div>
+<div id="stage"><img id="page-image" alt="" hidden><pre id="text"></pre></div>
+<script type="module">
+  const status = document.getElementById('status')
+  const image = document.getElementById('page-image')
+  const textOut = document.getElementById('text')
+  const pageInput = document.getElementById('page')
+  const scaleSelect = document.getElementById('scale')
+  const worker = new Worker('./craft.worker.js', { type: 'module', name: 'craft-preview' })
+  const pending = new Map()
+  let sequence = 0, metadata = null
+
+  worker.addEventListener('message', (event) => {
+    const request = pending.get(event.data.id)
+    if (!request) return
+    pending.delete(event.data.id)
+    clearTimeout(request.timer)
+    event.data.error ? request.reject(new Error(event.data.error)) : request.resolve(event.data)
+  })
+  worker.addEventListener('error', (event) => say(event.message || 'motore non disponibile', true))
+
+  const call = (message, transfer = []) => new Promise((resolve, reject) => {
+    const id = ++sequence
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error('timeout')) }, 60_000)
+    pending.set(id, { resolve, reject, timer })
+    worker.postMessage({ ...message, id }, transfer)
+  })
+  const say = (value, error = false) => { status.textContent = value; error ? status.dataset.error = '' : delete status.dataset.error }
+
+  async function show() {
+    if (!metadata) return
+    const page = Math.min(Math.max(1, Number(pageInput.value) || 1), metadata.pages.length) - 1
+    const scale = Number(scaleSelect.value)
+    const started = performance.now()
+    const result = await call({ method: 'page', page, scale })
+    const ms = Math.round(performance.now() - started)
+    const url = URL.createObjectURL(new Blob([result.png], { type: 'image/png' }))
+    image.onload = () => {
+      URL.revokeObjectURL(url)
+      say(`pagina ${page + 1}/${metadata.pages.length} · ${image.naturalWidth}×${image.naturalHeight} px · ${ms} ms`)
+    }
+    image.src = url
+    image.hidden = false
+    const runs = JSON.parse(result.text)
+    textOut.textContent = runs.map((run) => run.text).join('\n')
+    window.__craft = { pages: metadata.pages.length, width: image.naturalWidth, height: image.naturalHeight, runs: runs.length, ms, title: metadata.title }
+  }
+
+  const ENGINE_BY_EXTENSION = { pdf: 'pdfcraft', docx: 'wordcraft', xlsx: 'gridcraft', xlsm: 'gridcraft', pptx: 'deckcraft', pptm: 'deckcraft' }
+
+  async function open(buffer, engine = 'pdfcraft') {
+    try {
+      say('apertura…')
+      const reply = await call({ method: 'open', engine, bytes: new Uint8Array(buffer) })
+      metadata = reply.metadata
+      pageInput.max = metadata.pages.length
+      await show()
+    } catch (error) { say(error.message, true) }
+  }
+
+  document.getElementById('file').addEventListener('change', async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+    const engine = ENGINE_BY_EXTENSION[file.name.split('.').pop().toLowerCase()]
+    if (!engine) return say('formato non supportato', true)
+    await open(await file.arrayBuffer(), engine)
+  })
+  pageInput.addEventListener('change', () => show().catch((error) => say(error.message, true)))
+  scaleSelect.addEventListener('change', () => show().catch((error) => say(error.message, true)))
+  say('pronto')
+  window.__openBytes = open
+</script>

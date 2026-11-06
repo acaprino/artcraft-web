@@ -31,7 +31,7 @@ Né la build né i test aggiornano l'upstream. Ogni pin sta in `pins/<motore>.js
 
 Il toolchain Rust è fissato per motore in `rust` del pin: aggiornarlo è lo stesso passo (nuova release stabile → pin → build completa). `rustup target add wasm32-unknown-unknown --toolchain <rust>` e `wasm-bindgen-cli` (`.cache/tools/wasm-bindgen-<versione>/bin`) li installa la build se mancano (serve la rete la prima volta).
 
-Storico adozioni: 2026-11-06 pin spostati a pdfcraft v0.18.2, wordcraft v0.15.2, gridcraft v0.16.1 (adattamento: `active_sheet = tile.sheet.into()`), deckcraft v0.15.1. Controllare sempre con `npm run upstream:check` prima di un nuovo giro.
+Storico adozioni: 2026-11-06 pin spostati a pdfcraft v0.18.2, wordcraft v0.15.2, gridcraft v0.16.1 (adattamento: `active_sheet = tile.sheet.into()`), deckcraft v0.15.1; release 0.2.0 verificata con smoke, browser e installazione dei tarball. Con gridcraft v0.16.1 `epaint_default_fonts` viene dal checkout git di storytold/egui (non piu dal registry) e include `egui-icons.txt`: le note si leggono dal git cache di Cargo, e il wasm di GridCraft sale a ~18 MB. Controllare sempre con `npm run upstream:check` prima di un nuovo giro.
 
 ## Contratto API (non romperlo)
 

@@ -64,15 +64,26 @@ function prepareSource(engine, pin) {
 
 function epaintNotices(src, env) {
   const lock = readFileSync(join(src, 'Cargo.lock'), 'utf8')
-  const version = /name = "epaint_default_fonts"\s+version = "([^"]+)"/.exec(lock)?.[1]
-  if (!version) return {}
-  const checksum = /name = "epaint_default_fonts"\s+version = "[^"]+"\s+source = "[^"]+"\s+checksum = "([a-f0-9]{64})"/.exec(lock)?.[1]
-  const cache = join(env.CARGO_HOME ?? join(homedir(), '.cargo'), 'registry/cache')
+  const entry = /name = "epaint_default_fonts"\s+version = "([^"]+)"\s+source = "([^"]+)"(?:\s+checksum = "([a-f0-9]{64})")?/.exec(lock)
+  if (!entry) return {}
+  const [, version, source, checksum] = entry
+  const cargoHome = env.CARGO_HOME ?? join(homedir(), '.cargo')
+  const notice = (name, bytes) => [`epaint-${name}`, bytes]
+  if (source.startsWith('git+')) {
+    const rev = source.split('#').at(-1).slice(0, 7)
+    const checkouts = join(cargoHome, 'git/checkouts')
+    for (const repo of existsSync(checkouts) ? readdirSync(checkouts) : []) {
+      const fonts = join(checkouts, repo, rev, 'crates/epaint_default_fonts/fonts')
+      if (existsSync(fonts)) return Object.fromEntries(readdirSync(fonts).filter((name) => name.endsWith('.txt')).map((name) => notice(name, readFileSync(join(fonts, name)))))
+    }
+    throw new Error(`epaint_default_fonts git checkout ${rev} not found in the cargo git cache`)
+  }
+  const cache = join(cargoHome, 'registry/cache')
   for (const registry of existsSync(cache) ? readdirSync(cache) : []) {
     const archive = join(cache, registry, `epaint_default_fonts-${version}.crate`)
     if (!existsSync(archive)) continue
     if (sha256(readFileSync(archive)) !== checksum) throw new Error('epaint_default_fonts checksum mismatch')
-    return Object.fromEntries(EPAINT_NOTICES.map((name) => [`epaint-${name}`, execFileSync('tar', ['-xzOf', archive, `epaint_default_fonts-${version}/fonts/${name}`], { maxBuffer: 1 << 24 })]))
+    return Object.fromEntries(EPAINT_NOTICES.map((name) => notice(name, execFileSync('tar', ['-xzOf', archive, `epaint_default_fonts-${version}/fonts/${name}`], { maxBuffer: 1 << 24 }))))
   }
   throw new Error('epaint_default_fonts crate not found in the cargo registry cache')
 }

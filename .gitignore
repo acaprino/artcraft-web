@@ -4,3 +4,4 @@
 /target/
 /node_modules/
 effectiveness-metrics.json
+.jcode/local/

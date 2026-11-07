@@ -1,0 +1,40 @@
+@echo off
+setlocal
+rem Long-running: updates the upstream pins, rebuilds every changed engine, tests, bumps the version, packs release\.
+rem   update-and-release.bat            update only if a newer upstream release exists
+rem   update-and-release.bat --force    rebuild and re-release anyway
+rem   update-and-release.bat --commit   commit on success (never pushes)
+rem Duration: up to ~2 hours (one rustc job at a time).
+rem Logs: logs\update-*.log (full output), logs\last-error.txt (summary of the last failure), logs\launcher.log (this script).
+cd /d "%~dp0"
+title artcraft-web update and release
+if not exist logs mkdir logs
+set "LAUNCHER=%~dp0logs\launcher.log"
+echo [%DATE% %TIME%] start args="%*" >> "%LAUNCHER%"
+if not defined ARTCRAFT_TARGET_DIR set "ARTCRAFT_TARGET_DIR=%TEMP%\artcraft-target"
+where node >> "%LAUNCHER%" 2>&1
+if errorlevel 1 (
+  echo [%DATE% %TIME%] ERRORE: node non trovato nel PATH >> "%LAUNCHER%"
+  echo ERRORE: node non trovato nel PATH. Vedi logs\launcher.log
+  set "RC=9009"
+  goto :end
+)
+if not exist node_modules\binaryen (
+  echo [%DATE% %TIME%] npm install >> "%LAUNCHER%"
+  call npm install --no-audit --no-fund >> "%LAUNCHER%" 2>&1
+  if errorlevel 1 (
+    echo [%DATE% %TIME%] ERRORE: npm install fallito >> "%LAUNCHER%"
+    echo ERRORE: npm install fallito. Vedi logs\launcher.log
+    set "RC=1"
+    goto :end
+  )
+)
+node scripts\update-and-release.mjs %*
+set "RC=%ERRORLEVEL%"
+:end
+if exist "%ARTCRAFT_TARGET_DIR%" rmdir /s /q "%ARTCRAFT_TARGET_DIR%"
+echo [%DATE% %TIME%] fine, codice %RC% >> "%LAUNCHER%"
+echo.
+if "%RC%"=="0" (echo OK: vedi release\ e logs\) else (echo ERRORE %RC%: vedi logs\last-error.txt e l'ultimo logs\update-*.log)
+pause
+exit /b %RC%

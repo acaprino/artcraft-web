@@ -1,11 +1,15 @@
 @echo off
 setlocal
-rem Long-running: updates the upstream pins, rebuilds every changed engine, tests, bumps the version, packs release\.
-rem   update-and-release.bat            update only if a newer upstream release exists
-rem   update-and-release.bat --force    rebuild and re-release anyway
+rem Long-running and RESUMABLE: updates the upstream pins, rebuilds every changed engine, tests, bumps the version, packs release\.
+rem If it stops (error, reboot, window closed, kill), run the same command again: it continues from logs\update-state.json.
+rem   update-and-release.bat            start an update, or continue the unfinished one
+rem   update-and-release.bat --force    rebuild and re-release even without a newer upstream release
 rem   update-and-release.bat --commit   commit on success (never pushes)
+rem   update-and-release.bat --status   show the tracked progress
+rem   update-and-release.bat --resume   also adopt an interrupted run that left no state file
+rem   update-and-release.bat --rollback discard the unfinished update
 rem Duration: up to ~2 hours (one rustc job at a time).
-rem Logs: logs\update-*.log (full output), logs\last-error.txt (summary of the last failure), logs\launcher.log (this script).
+rem Logs: logs\update-*.log (full output), logs\update-state.json (progress), logs\last-error.txt, logs\llm-handoff.md (compile errors for the LLM), logs\launcher.log (this script).
 cd /d "%~dp0"
 title artcraft-web update and release
 if not exist logs mkdir logs
@@ -32,9 +36,10 @@ if not exist node_modules\binaryen (
 node scripts\update-and-release.mjs %*
 set "RC=%ERRORLEVEL%"
 :end
-if exist "%ARTCRAFT_TARGET_DIR%" rmdir /s /q "%ARTCRAFT_TARGET_DIR%"
+rem The cargo targets are kept after a failure: they let the resumed run continue the compilation.
+if "%RC%"=="0" if exist "%ARTCRAFT_TARGET_DIR%" rmdir /s /q "%ARTCRAFT_TARGET_DIR%"
 echo [%DATE% %TIME%] fine, codice %RC% >> "%LAUNCHER%"
 echo.
-if "%RC%"=="0" (echo OK: vedi release\ e logs\) else (echo ERRORE %RC%: vedi logs\last-error.txt e l'ultimo logs\update-*.log)
+if "%RC%"=="0" (echo OK: vedi release\ e logs\) else (echo ERRORE %RC%: rilancia lo stesso comando per riprendere. Vedi logs\last-error.txt e logs\update-state.json)
 pause
 exit /b %RC%

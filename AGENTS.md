@@ -35,13 +35,26 @@ Storico adozioni: 2026-11-06 pin spostati a pdfcraft v0.18.2, wordcraft v0.15.2,
 
 ## Aggiornamento automatico (`update-and-release.bat`)
 
-Lungo (fino a ~2 ore), da avviare a mano: `update-and-release.bat` (opzioni: `--force`, `--commit`, `--resume`, `--rollback`). Sposta i pin, ricompila i motori cambiati, esegue smoke e browser test, alza la versione minor e produce `release/`. Non fa mai push. Log: `logs/update-*.log` (tutto l'output), `logs/last-error.txt`, `logs/launcher.log`.
+Lungo (fino a ~2 ore), da avviare a mano, **riprendibile**: se si ferma (errore, riavvio, finestra chiusa, kill) si rilancia lo stesso comando e continua da `logs/update-state.json`. Sposta i pin, ricompila i motori cambiati, esegue smoke e browser test, alza la versione minor e produce `release/`. Non fa mai push.
 
-**Se fallisce dopo lo spostamento dei pin** (tipico: le API upstream sono cambiate e il crate overlay non compila) non annulla nulla: pin e `.cache/<motore>` restano per la correzione e scrive `logs/llm-handoff.md` con errori del compilatore estratti e prompt pronto. Procedura per l'LLM:
+| Comando | Effetto |
+| --- | --- |
+| `update-and-release.bat` | nuovo aggiornamento, oppure continua quello non finito |
+| `--status` | mostra i passi tracciati (pin, build per motore e tentativi, test, versione, release) |
+| `--commit` | committa a fine corsa (mai push) |
+| `--force` | ricompila e rilascia anche senza release nuove |
+| `--resume` | adotta anche una corsa interrotta senza file di stato (pin diversi da HEAD) |
+| `--rollback` | annulla (pin, packages e versione a HEAD; rimuove stato, `.cache` dei motori spostati e target Cargo) |
+
+Come riprende: lo stato JSON segna ogni passo prima e dopo l'esecuzione (scrittura atomica); alla ripresa un passo non `done` viene rifatto, uno `done` viene saltato se ancora valido (`dist/` verificato contro il pin con `verifyDist`, `release/manifest.json` contro la versione, commit già fatto). Il target Cargo di un motore resta finché il motore non è finito, quindi una compilazione interrotta riparte dai crate già compilati. Si rifiuta di riprendere se HEAD è cambiato dall'inizio. Se i pin cambiano mentre è in corso (es. un nuovo `--force`), lo stato precedente ha la precedenza: usare `--rollback` per ricominciare.
+
+Log: `logs/update-*.log` (tutto l'output), `logs/update-state.json`, `logs/last-error.txt`, `logs/launcher.log`.
+
+**Se fallisce dopo lo spostamento dei pin** (tipico: le API upstream sono cambiate e il crate overlay non compila) non annulla nulla: pin, stato e `.cache/<motore>` restano per la correzione e scrive `logs/llm-handoff.md` con errori del compilatore estratti e prompt pronto. Procedura per l'LLM:
 1. Leggere `logs/llm-handoff.md` e l'errore; adattare **solo** `packages/<motore>/preview` (mai `.cache`), senza rompere il contratto API.
 2. Verificare con `node build.mjs <motore>` e `node test/smoke.mjs <motore>`.
-3. Rilanciare `update-and-release.bat --resume`: ricompila i motori il cui pin differisce da HEAD (salta quelli con `dist/` già valido), poi test, versione, release.
-4. Se non è adattabile: `update-and-release.bat --rollback` (pin, packages e versione tornano a HEAD, `.cache` dei motori spostati viene rimossa) e riferire il motivo.
+3. Rilanciare `update-and-release.bat`: salta i motori già compilati, poi test, versione, release.
+4. Se non è adattabile: `update-and-release.bat --rollback` e riferire il motivo.
 Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di compilazione no. Se il crash resta, nel handoff è indicato come memoria, non come bug del codice.
 
 ## Contratto API (non romperlo)

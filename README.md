@@ -39,6 +39,7 @@ npm test                      # prova Node di tutti i motori
 npm run test:browser          # prova Edge headless con Worker
 npm run release               # build + test + tarball + installazione di prova
 npm run upstream:check        # nuove release upstream
+update-and-release.bat       # aggiorna pin, ricompila, testa, rilascia (lungo, log in logs/)
 ```
 
 Struttura:

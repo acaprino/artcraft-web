@@ -33,6 +33,17 @@ Il toolchain Rust è fissato per motore in `rust` del pin: aggiornarlo è lo ste
 
 Storico adozioni: 2026-11-06 pin spostati a pdfcraft v0.18.2, wordcraft v0.15.2, gridcraft v0.16.1 (adattamento: `active_sheet = tile.sheet.into()`), deckcraft v0.15.1; release 0.2.0 verificata con smoke, browser e installazione dei tarball. Con gridcraft v0.16.1 `epaint_default_fonts` viene dal checkout git di storytold/egui (non piu dal registry) e include `egui-icons.txt`: le note si leggono dal git cache di Cargo, e il wasm di GridCraft sale a ~18 MB. Controllare sempre con `npm run upstream:check` prima di un nuovo giro.
 
+## Aggiornamento automatico (`update-and-release.bat`)
+
+Lungo (fino a ~2 ore), da avviare a mano: `update-and-release.bat` (opzioni: `--force`, `--commit`, `--resume`, `--rollback`). Sposta i pin, ricompila i motori cambiati, esegue smoke e browser test, alza la versione minor e produce `release/`. Non fa mai push. Log: `logs/update-*.log` (tutto l'output), `logs/last-error.txt`, `logs/launcher.log`.
+
+**Se fallisce dopo lo spostamento dei pin** (tipico: le API upstream sono cambiate e il crate overlay non compila) non annulla nulla: pin e `.cache/<motore>` restano per la correzione e scrive `logs/llm-handoff.md` con errori del compilatore estratti e prompt pronto. Procedura per l'LLM:
+1. Leggere `logs/llm-handoff.md` e l'errore; adattare **solo** `packages/<motore>/preview` (mai `.cache`), senza rompere il contratto API.
+2. Verificare con `node build.mjs <motore>` e `node test/smoke.mjs <motore>`.
+3. Rilanciare `update-and-release.bat --resume`: ricompila i motori il cui pin differisce da HEAD (salta quelli con `dist/` già valido), poi test, versione, release.
+4. Se non è adattabile: `update-and-release.bat --rollback` (pin, packages e versione tornano a HEAD, `.cache` dei motori spostati viene rimossa) e riferire il motivo.
+Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di compilazione no. Se il crash resta, nel handoff è indicato come memoria, non come bug del codice.
+
 ## Contratto API (non romperlo)
 
 `new Document(bytes[, password])`, `metadata()` (JSON: `engine`, `version` = tag del pin, `pages[]`, `warnings`), `renderPage(index, scale) -> PNG`, `pageText(index)` (JSON di run con `text`, `x`, `y`, `width`, `height`…), `free()`. Errori sempre come eccezione intercettabile, mai un abort del wasm. GridCraft: `pageText(i)` ha contenuto solo dopo `renderPage(i)`. La versione riportata dal wasm viene da `JCODE_CRAFT_ENGINE_VERSION` (= `tag` del pin): niente versioni scritte a mano nei crate. Gli originali sono in sola lettura e i limiti dei documenti (dimensione, pagine, pixel) non si aggirano per far passare una prova.

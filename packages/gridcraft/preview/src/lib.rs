@@ -155,9 +155,11 @@ impl XlsxDocument {
         let width = (WIDTH * scale).round() as u32;
         let height = (HEIGHT * scale).round() as u32;
         if u64::from(width) * u64::from(height) > 16_000_000 { return Err("L'anteprima supera il limite dei pixel".into()); }
+        let window = self.app.session.active_window().ok_or("Finestra assente")?;
         let document = self.app.session.active_mut().ok_or("Workbook assente")?;
         Arc::make_mut(&mut document.wb).active_sheet = tile.sheet.into();
-        self.app.views.insert((document.uid, tile.sheet), SheetView { scroll: vec2(tile.x, tile.y) });
+        let sheet_uid = document.wb.active().ok_or("Foglio assente")?.uid.get();
+        self.app.views.insert((window, sheet_uid), SheetView { scroll: vec2(tile.x, tile.y) });
         self.app.grid.ensure_visible = false;
         let mut output = None;
         let mut free_after_paint = Vec::new();

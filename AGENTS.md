@@ -73,3 +73,7 @@ Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di comp
 - Commit e push solo su richiesta esplicita. `.cache/`, `dist/`, `release/`, `node_modules/` sono ignorati da git.
 - Non committare binari di fixture: i documenti di prova si generano in memoria (`test/fixtures.mjs`).
 - Verifiche dichiarate solo se eseguite: `npm test`, `npm run test:browser` e `npm run release` con esito letto, per tutti e quattro i motori.
+
+## Rami Git
+
+- Il ramo principale è `main`, l'unico (non c'è `master`): i rami partono da `main` e tornano in `main`.

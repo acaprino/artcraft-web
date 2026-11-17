@@ -13,11 +13,11 @@ API comune: `new Document(bytes)` (PDF: `, password`), `metadata()`, `renderPage
 
 ## Release
 
-Ogni versione distribuita è un tag annotato `v<versione>` (la `version` di `package.json`) sul commit di release, con la sua GitHub Release su `acaprino/artcraft-web` (privata): un `.tgz` per motore, `manifest.json` e `SHA256SUMS`. Qemille ed Ethel scaricano sempre l'ultima release, senza fissarne una.
+Ogni versione distribuita è un tag annotato `v<versione>` (la `version` di `package.json`) sul commit di release, con la sua GitHub Release su `acaprino/artcraft-web` (privata), pubblicate dal workflow a ogni merge di `develop` in `main` (etichette `release:minor`/`release:major` per minor e major): un `.tgz` per motore, `manifest.json` e `SHA256SUMS`. Qemille ed Ethel scaricano sempre l'ultima release, senza fissarne una.
 
 ```sh
-update-and-release.bat --commit      # pin all'ultimo upstream, build, test, versione, release/, commit
-npm run publish:github              # tag v<versione>, push di ramo e tag, GitHub Release con i pacchetti
+update-and-release.bat --commit      # su develop: pin all'ultimo upstream, build, test, commit
+# poi la pull request develop -> main: il merge pubblica la release (tag e GitHub Release)
 ```
 
 Una versione pubblicata non si sostituisce: una nuova release vuole una nuova versione.
@@ -51,7 +51,6 @@ npm run test:browser          # prova Edge headless con Worker
 npm run release               # build + test + tarball + installazione di prova
 npm run upstream:check        # nuove release upstream
 update-and-release.bat       # aggiorna pin, ricompila, testa, rilascia (lungo, log in logs/)
-npm run publish:github       # tag v<versione> e GitHub Release di release/
 ```
 
 Struttura:

@@ -1,8 +1,10 @@
-// Unattended, resumable pipeline: move pins to the latest upstream releases, rebuild, test, bump the minor version, pack the release.
+// Unattended, resumable pipeline: move pins to the latest upstream releases, rebuild, test, pack a local release/.
+// The version is not changed here: the release workflow raises it when develop is merged into main (label the pull
+// request release:minor for a new upstream).
 // Usage: node scripts/update-and-release.mjs [engine ...] [--force] [--commit] [--resume] [--rollback] [--status]
 //   (no flag)   continues an unfinished update automatically when logs/update-state.json says so, otherwise starts a new one
 //   --force     rebuild and re-release even when no upstream release is newer
-//   --commit    commit pins, overlay changes and version on success (never pushes)
+//   --commit    commit pins and overlay changes on success, on develop (never pushes)
 //   --resume    like no flag, and also adopts an interrupted run that left no state file (pins differ from git HEAD)
 //   --rollback  discard the unfinished update (pins, packages, version back to HEAD; state, .cache checkouts, cargo targets removed)
 //   --status    print the progress tracked in logs/update-state.json and exit
@@ -178,7 +180,8 @@ const git = (...argv) => new Promise((resolve) => {
 const pinsNow = () => Object.fromEntries(ENGINE_NAMES.map((e) => [e, readPin(e)]))
 const pinsAtHead = async () => Object.fromEntries(await Promise.all(ENGINE_NAMES.map(async (e) => [e, JSON.parse((await git('show', `HEAD:pins/${e}.json`)).out)])))
 const head = async () => (await git('rev-parse', 'HEAD')).out
-const bump = (version) => { const [major, minor] = version.split('.').map(Number); return `${major}.${minor + 1}.0` }
+// The version stays: .github/workflows/release.yml raises it at the merge into main.
+const bump = (version) => version
 const pinChanges = (before, after) => Object.fromEntries(ENGINE_NAMES.filter((e) => before[e].tag !== after[e].tag).map((e) => [e, { from: before[e].tag, to: after[e].tag, commit: after[e].commit }]))
 
 function newState(base, pins, versionFrom, engines) {
@@ -330,8 +333,8 @@ async function main() {
     if (isDone('commit') || (await head()) !== state.baseCommit) say('skip commit: already committed')
     else {
       await git('add', 'pins', 'packages', 'package.json', 'package-lock.json', 'build.mjs', 'scripts')
-      const result = await git('commit', '-m', `release ${state.versionTo}: upstream ${notes}`)
-      say(result.code === 0 ? `committed release ${state.versionTo} (no push)` : `commit failed (release files are fine): ${result.out}`)
+      const result = await git('commit', '-m', `upstream: ${notes}`)
+      say(result.code === 0 ? `committed upstream ${notes} (no push; release:minor on the pull request to main)` : `commit failed (release files are fine): ${result.out}`)
       if (result.code === 0) mark('commit', 'done')
     }
   } else say('not committed: review "git diff" and commit, or rerun with --commit')

@@ -26,7 +26,7 @@ Né la build né i test aggiornano l'upstream. Ogni pin sta in `pins/<motore>.js
 2. `node scripts/update-upstream.mjs <motore>` (o `--tag`): riscrive tag, commit e `wasmBindgen` leggendoli dal tag clonato e cancella `.cache/<motore>`. Se `wasmBindgen` cambia, aggiornare anche `wasm-bindgen = "=X"` in **tutti** i `packages/*/preview/Cargo.toml` (la versione deve essere identica in tutti i crate e nel `wasm-bindgen-cli` in `.cache/tools`).
 3. Il crate overlay `packages/<motore>/preview/` è il nostro adattamento permanente, copiato nel checkout come membro `jcode-preview` del workspace upstream. Se l'upstream cambia le API usate (`wordcraft-*`, `gridcraft-*`, `deckcraft-*`, `pdfcraft-render`, tipi `Workbook`/`Sheet`…) il crate va adattato **in `packages/`**, mai nella cache. La build aggiunge il crate al `Cargo.lock` upstream con `cargo metadata` e compila con `--locked`: si ferma se cambia la versione di un pacchetto upstream.
 4. **WordCraft fornisce i font a tutti** (`JCODE_CRAFT_FONT_DIR` = `assets/fonts` del suo checkout): se il suo pin cambia, ricompilare tutti i motori.
-5. `npm run release` (build + `npm test` + installazione dei tarball), poi `npm run test:browser`. Alzare `version` in `package.json` per ogni release distribuita (semver: patch = stesso upstream/fix, minor = nuovo upstream o API compatibile, major = API rotta).
+5. `npm run release` (build + `npm test` + installazione dei tarball), poi `npm run test:browser`. La versione non si tocca: la alza il workflow al merge di `develop` in `main`; sulla pull request l'etichetta dice il passo (nessuna = patch, stesso upstream/fix; `release:minor` = nuovo upstream o API compatibile; `release:major` = API rotta).
 6. Rileggere i warning della build: licenze (`LICENSE-*`, `OFL-*`, `epaint-*` per Grid/Deck) e `provenance.json` devono restare completi (`verifyDist` in `scripts/common.mjs` li impone). Aggiornare questa pagina e il README se cambia il comportamento.
 
 Il toolchain Rust è fissato per motore in `rust` del pin: aggiornarlo è lo stesso passo (nuova release stabile → pin → build completa). `rustup target add wasm32-unknown-unknown --toolchain <rust>` e `wasm-bindgen-cli` (`.cache/tools/wasm-bindgen-<versione>/bin`) li installa la build se mancano (serve la rete la prima volta).
@@ -35,13 +35,13 @@ Storico adozioni: 2026-11-06 pin spostati a pdfcraft v0.18.2, wordcraft v0.15.2,
 
 ## Aggiornamento automatico (`update-and-release.bat`)
 
-Lungo (fino a ~2 ore), da avviare a mano, **riprendibile**: se si ferma (errore, riavvio, finestra chiusa, kill) si rilancia lo stesso comando e continua da `logs/update-state.json`. Sposta i pin, ricompila i motori cambiati, esegue smoke e browser test, alza la versione minor e produce `release/`. Non fa mai push.
+Lungo (fino a ~2 ore), da avviare a mano, **riprendibile**: se si ferma (errore, riavvio, finestra chiusa, kill) si rilancia lo stesso comando e continua da `logs/update-state.json`. Sposta i pin, ricompila i motori cambiati, esegue smoke e browser test e produce una `release/` locale di prova. Non cambia la versione (la alza il workflow al merge in `main`: per un nuovo upstream etichetta `release:minor` sulla pull request) e non fa mai push.
 
 | Comando | Effetto |
 | --- | --- |
 | `update-and-release.bat` | nuovo aggiornamento, oppure continua quello non finito |
 | `--status` | mostra i passi tracciati (pin, build per motore e tentativi, test, versione, release) |
-| `--commit` | committa a fine corsa (mai push) |
+| `--commit` | committa a fine corsa su `develop` (`upstream: ...`, mai push) |
 | `--force` | ricompila e rilascia anche senza release nuove |
 | `--resume` | adotta anche una corsa interrotta senza file di stato (pin diversi da HEAD) |
 | `--rollback` | annulla (pin, packages e versione a HEAD; rimuove stato, `.cache` dei motori spostati e target Cargo) |
@@ -74,13 +74,20 @@ Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di comp
 - Non committare binari di fixture: i documenti di prova si generano in memoria (`test/fixtures.mjs`).
 - Verifiche dichiarate solo se eseguite: `npm test`, `npm run test:browser` e `npm run release` con esito letto, per tutti e quattro i motori.
 
-## Release con tag
+## Rami Git e release
 
-- Ogni versione distribuita ha un tag annotato `v<versione>` sul suo commit di release e una GitHub Release su `acaprino/artcraft-web` con i file di `release/` (`.tgz` per motore, `manifest.json`, `SHA256SUMS`). Tag storici: `v0.1.0` `99c3e85`, `v0.2.0` `fd7b7d4`, `v0.3.0` `dd60339`, `v0.4.0` `32c5b38`.
-- Flusso: `update-and-release.bat --commit` (o `npm run release` dopo aver alzato `version`), poi `npm run publish:github` (crea il tag su HEAD se manca, pusha ramo e tag, crea la release come `latest`). Il push lo fa solo questo comando, su richiesta.
-- Una versione pubblicata non si sostituisce né si sposta il suo tag: una nuova release vuole una nuova versione.
-- Qemille ed Ethel scaricano sempre l'ultima GitHub Release (`scripts/artcraft-github.mjs` nei loro repo), senza pin: una release pubblicata è subito la loro.
-
-## Rami Git
-
-- Il ramo principale è `main`, l'unico (non c'è `master`): i rami partono da `main` e tornano in `main`.
+- I rami sono due, e solo due: `main` (ciò che si rilascia) e `develop` (dove si integra).
+- Si lavora sempre su `develop`, o su un ramo breve che parte da `develop`, torna in `develop` e poi si
+  cancella. Mai merge o push in `main`, e nessun altro ramo, né locale né su GitHub.
+- Una release è la pull request `develop` → `main`, aperta e unita dal proprietario: ogni merge in `main` è
+  una release (`.github/workflows/release.yml`, lo stesso in Shinatama, Mukade, Xiox, Muro, Ethel, Qemille e
+  artcraft-web). La versione di `package.json` sale di una patch, o di una minor o major se la pull request ha
+  l'etichetta `release:minor` o `release:major`; su un runner Linux `npm ci` e `npm run release` ricostruiscono
+  i motori dai pin e preparano `release/`; si pubblicano il tag `v<versione>` e la GitHub Release con i file di
+  `release/` (`.tgz` per motore, `manifest.json`, `SHA256SUMS`), e `main` torna in `develop`. Se la build
+  fallisce non si pubblica nulla.
+- Mai cambiare la versione o creare tag di release a mano: lo fa il workflow (`.github/release.json`,
+  `.github/scripts/release.mjs`). Una versione pubblicata non si sostituisce.
+- Tag storici: `v0.1.0` `99c3e85`, `v0.2.0` `fd7b7d4`, `v0.3.0` `dd60339`, `v0.4.0` `32c5b38`.
+- Qemille ed Ethel scaricano sempre l'ultima GitHub Release (`scripts/artcraft-github.mjs` nei loro repo), senza
+  pin: una release pubblicata è subito la loro.

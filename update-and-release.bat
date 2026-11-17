@@ -1,6 +1,6 @@
 @echo off
 setlocal
-rem Long-running and RESUMABLE: updates the upstream pins, rebuilds every changed engine, tests, bumps the version, packs release\.
+rem Long-running and RESUMABLE: updates the upstream pins, rebuilds every changed engine, tests, packs a local release\ (the version is raised by the release workflow at the merge into main).
 rem If it stops (error, reboot, window closed, kill), run the same command again: it continues from logs\update-state.json.
 rem   update-and-release.bat            start an update, or continue the unfinished one
 rem   update-and-release.bat --force    rebuild and re-release even without a newer upstream release

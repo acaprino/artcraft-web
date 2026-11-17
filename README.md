@@ -13,7 +13,7 @@ API comune: `new Document(bytes)` (PDF: `, password`), `metadata()`, `renderPage
 
 ## Release
 
-Ogni versione distribuita è un tag annotato `v<versione>` (la `version` di `package.json`) sul commit di release, con la sua GitHub Release su `acaprino/artcraft-web` (privata), pubblicate dal workflow a ogni merge di `develop` in `main` (etichette `release:minor`/`release:major` per minor e major): un `.tgz` per motore, `manifest.json` e `SHA256SUMS`. Qemille ed Ethel scaricano sempre l'ultima release, senza fissarne una.
+Ogni versione distribuita è un tag annotato `v<versione>` (la `version` di `package.json`) sul commit di release, con la sua GitHub Release su `acaprino/artcraft-web` (pubblica), pubblicate dal workflow a ogni merge di `develop` in `main` (etichette `release:minor`/`release:major` per minor e major): un `.tgz` per motore, `manifest.json` e `SHA256SUMS`. Qemille ed Ethel scaricano sempre l'ultima release, senza fissarne una.
 
 ```sh
 update-and-release.bat --commit      # su develop: pin all'ultimo upstream, build, test, commit

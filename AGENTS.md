@@ -74,6 +74,13 @@ Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di comp
 - Non committare binari di fixture: i documenti di prova si generano in memoria (`test/fixtures.mjs`).
 - Verifiche dichiarate solo se eseguite: `npm test`, `npm run test:browser` e `npm run release` con esito letto, per tutti e quattro i motori.
 
+## Release con tag
+
+- Ogni versione distribuita ha un tag annotato `v<versione>` sul suo commit di release e una GitHub Release su `acaprino/artcraft-web` con i file di `release/` (`.tgz` per motore, `manifest.json`, `SHA256SUMS`). Tag storici: `v0.1.0` `99c3e85`, `v0.2.0` `fd7b7d4`, `v0.3.0` `dd60339`, `v0.4.0` `32c5b38`.
+- Flusso: `update-and-release.bat --commit` (o `npm run release` dopo aver alzato `version`), poi `npm run publish:github` (crea il tag su HEAD se manca, pusha ramo e tag, crea la release come `latest`). Il push lo fa solo questo comando, su richiesta.
+- Una versione pubblicata non si sostituisce né si sposta il suo tag: una nuova release vuole una nuova versione.
+- Qemille ed Ethel scaricano sempre l'ultima GitHub Release (`scripts/artcraft-github.mjs` nei loro repo), senza pin: una release pubblicata è subito la loro.
+
 ## Rami Git
 
 - Il ramo principale è `main`, l'unico (non c'è `master`): i rami partono da `main` e tornano in `main`.

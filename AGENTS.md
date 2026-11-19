@@ -80,7 +80,7 @@ Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di comp
 - Si lavora sempre su `develop`, o su un ramo breve che parte da `develop`, torna in `develop` e poi si
   cancella. Mai merge o push in `main`, e nessun altro ramo, né locale né su GitHub.
 - Una release è la pull request `develop` → `main`, aperta e unita dal proprietario: ogni merge in `main` è
-  una release (`.github/workflows/release.yml`, lo stesso in Shinatama, Mukade, Xiox, Muro, Ethel, Qemille e
+  una release (`.github/workflows/release.yml`, lo stesso in Shinatama, Mukade, Xiox, Muro, Ethel, Qamille e
   artcraft-web). La versione di `package.json` sale di una patch, o di una minor o major se la pull request ha
   l'etichetta `release:minor` o `release:major`; su un runner Linux `npm ci` e `npm run release` ricostruiscono
   i motori dai pin e preparano `release/`; si pubblicano il tag `v<versione>` e la GitHub Release con i file di
@@ -89,5 +89,5 @@ Un crash per memoria (0xc0000409) è ritentato fino a 3 volte; un errore di comp
 - Mai cambiare la versione o creare tag di release a mano: lo fa il workflow (`.github/release.json`,
   `.github/scripts/release.mjs`). Una versione pubblicata non si sostituisce.
 - Tag storici: `v0.1.0` `99c3e85`, `v0.2.0` `fd7b7d4`, `v0.3.0` `dd60339`, `v0.4.0` `32c5b38`.
-- Qemille ed Ethel scaricano sempre l'ultima GitHub Release (`scripts/artcraft-github.mjs` nei loro repo), senza
+- Qamille ed Ethel scaricano sempre l'ultima GitHub Release (`scripts/artcraft-github.mjs` nei loro repo), senza
   pin: una release pubblicata è subito la loro.
